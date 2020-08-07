@@ -2,7 +2,7 @@ package pgo2
 
 import (
 	"fmt"
-	"os"
+	"github.com/pinguo/pgo2/options"
 	"regexp"
 	"strings"
 	"time"
@@ -49,36 +49,41 @@ func App(newApp ...bool) *Application {
 	if application != nil && newApp == nil {
 		return application
 	}
-
-	application = NewApp()
+	opts := options.Opt()
+	if len(newApp) > 0 {
+		opts.NewApp = newApp[0]
+	}
+	application = NewApp(opts)
 
 	return application
 }
 
-func ArgsApp(newApp bool, args []string) *Application {
-	if application != nil && newApp == false {
+func ArgsApp(opts ...options.Option) *Application {
+	opt := options.Opt()
+	for _, optValue := range opts {
+		optValue(opt)
+	}
+
+	if application != nil && opt.NewApp == false {
 		return application
 	}
 
-	application = NewApp(args...)
+	application = NewApp(opt)
 
 	return application
 }
 
 // Run run app
-func Run(args ...string) {
-	if len(args) == 0 {
-		args = os.Args
-	}
+func Run(opts ...options.Option) {
 	// Initialization route
-	ArgsApp(false, args).Router().InitHandlers()
+	ArgsApp(opts...).Router().InitHandlers()
 	// Check config path
 	if err := App().Config().CheckPath(); err != nil {
 		cmdList()
 		panic(err)
 	}
 	// Listen for server or start CMD
-	ArgsApp(false, args).Server().Serve()
+	ArgsApp(opts...).Server().Serve()
 }
 
 // GLogger get global logger

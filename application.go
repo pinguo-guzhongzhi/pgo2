@@ -3,6 +3,7 @@ package pgo2
 import (
 	"flag"
 	"fmt"
+	"github.com/pinguo/pgo2/options"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -23,12 +24,9 @@ func validArgs(f *flag.FlagSet) {
 	_ = f.String("cmdList", "", "Displays a list of CMD controllers used (optional), eg. --cmdList")
 }
 
-func NewApp(args ...string) *Application {
-	if len(args) == 0 {
-		args = os.Args
-	}
+func NewApp(option *options.Options) *Application {
 	flagSet := flag.NewFlagSet("pgo2", flag.ExitOnError)
-	flagSet.Parse(args)
+	flagSet.Parse(option.Args)
 	validArgs(flagSet)
 	exeBase := filepath.Base(flagSet.Args()[0])
 	exeExt := filepath.Ext(flagSet.Args()[0])
@@ -40,11 +38,12 @@ func NewApp(args ...string) *Application {
 		name:       strings.TrimSuffix(exeBase, exeExt),
 		components: make(map[string]interface{}),
 		objects:    make(map[string]iface.IObject),
+		option:     option,
 	}
 
 	app.basePath = app.genBasePath(exeDir)
 
-	app.Init(args)
+	app.Init(option.Args)
 
 	return app
 }
@@ -73,6 +72,8 @@ type Application struct {
 	lock       sync.RWMutex
 
 	args map[string]string
+
+	option *options.Options
 }
 
 func (app *Application) initArgs(osArgs []string) map[string]string {
@@ -151,6 +152,9 @@ func (app *Application) Init(osArgs []string) {
 
 	// initialize config object
 	app.config = config.New(app.basePath, app.env)
+	if app.option.AfterConfigInit != nil {
+		app.option.AfterConfigInit(app.config)
+	}
 
 	// initialize container object
 	enablePool, _ := app.config.Get("app.container.enablePool").(string)
