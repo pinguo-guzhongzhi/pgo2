@@ -22,10 +22,10 @@ var (
 var DbClass string
 
 func init() {
+	stmtPool.New = func() interface{} { return &Stmt{} }
+	rowPool.New = func() interface{} { return &Row{} }
+	txPool.New = func() interface{} { return &Tx{} }
 	pgo2.Opt(pgo2.AppInitOption(func(app *pgo2.Application) {
-		stmtPool.New = func() interface{} { return &Stmt{} }
-		rowPool.New = func() interface{} { return &Row{} }
-		txPool.New = func() interface{} { return &Tx{} }
 		container := app.Container()
 		DbClass = container.Bind(&Db{})
 	}))
