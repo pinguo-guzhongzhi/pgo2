@@ -8,7 +8,9 @@ import (
 
 var MaxMindClass string
 func init() {
-	MaxMindClass = pgo2.App().Container().Bind(&MaxMind{})
+	pgo2.Opt(pgo2.AppInitOption(func(app *pgo2.Application) {
+		MaxMindClass = app.Container().Bind(&MaxMind{})
+	}))
 }
 
 // NewMaxMind of MaxMind Client, add context support.

@@ -13,8 +13,10 @@ import (
 var RabbitMqClass string
 
 func init() {
-	container := pgo2.App().Container()
-	RabbitMqClass = container.Bind(&RabbitMq{})
+	pgo2.Opt(pgo2.AppInitOption(func(app *pgo2.Application) {
+		container := app.Container()
+		RabbitMqClass = container.Bind(&RabbitMq{})
+	}))
 }
 
 type RabbitMq struct {
@@ -33,7 +35,7 @@ func NewRabbitMq(dftConfig ...string) *RabbitMq {
 		id = dftConfig[0]
 	}
 
-	op:= map[string]interface{}{"logger": pgo2.GLogger()}
+	op := map[string]interface{}{"logger": pgo2.GLogger()}
 	if l >= 3 {
 		op["user"] = dftConfig[1]
 		op["pass"] = dftConfig[2]
@@ -56,7 +58,7 @@ func NewRabbitMqPool(iObj iface.IObject, dftConfig ...interface{}) iface.IObject
 		id = dftConfig[0].(string)
 	}
 
-	op:= map[string]interface{}{"logger": pgo2.GLogger()}
+	op := map[string]interface{}{"logger": pgo2.GLogger()}
 	if l >= 3 {
 		op["user"] = dftConfig[1]
 		op["pass"] = dftConfig[2]
@@ -90,7 +92,7 @@ func (r *RabbitMq) ExchangeDeclare(dftExchange ...*rabbitmq.ExchangeData) {
 	r.Context().ProfileStart(profile)
 	defer r.Context().ProfileStop(profile)
 	defer r.handlePanic()
-	var exchange  *rabbitmq.ExchangeData
+	var exchange *rabbitmq.ExchangeData
 	if len(dftExchange) > 0 {
 		exchange = dftExchange[0]
 	}
@@ -110,7 +112,7 @@ func (r *RabbitMq) Publish(opCode string, data interface{}, dftOpUid ...string) 
 		opUid = dftOpUid[0]
 	}
 
-	res, err := r.client.Publish(&rabbitmq.PublishData{ OpCode: opCode, Data: data, OpUid: opUid}, r.Context().LogId())
+	res, err := r.client.Publish(&rabbitmq.PublishData{OpCode: opCode, Data: data, OpUid: opUid}, r.Context().LogId())
 	panicErr(err)
 
 	return res
@@ -128,7 +130,7 @@ func (r *RabbitMq) PublishExchange(serviceName, exchangeName, exchangeType, opCo
 	}
 
 	res, err := r.client.Publish(&rabbitmq.PublishData{ServiceName: serviceName,
-		ExChange: &rabbitmq.ExchangeData{Name: exchangeName, Type: exchangeType, Durable:true},
+		ExChange: &rabbitmq.ExchangeData{Name: exchangeName, Type: exchangeType, Durable: true},
 		OpCode:   opCode, Data: data, OpUid: opUid}, r.Context().LogId())
 	panicErr(err)
 
@@ -153,7 +155,7 @@ func (r *RabbitMq) GetConsumeChannelBox(queueName string, opCodes []string, dftE
 	defer r.Context().ProfileStop(profile)
 	defer r.handlePanic()
 
-	var exchange  *rabbitmq.ExchangeData
+	var exchange *rabbitmq.ExchangeData
 	if len(dftExchange) > 0 {
 		exchange = dftExchange[0]
 	}
@@ -177,7 +179,7 @@ func (r *RabbitMq) Consume(queueName string, opCodes []string, limit int, autoAc
 	defer r.handlePanic()
 
 	ConsumeName := queueName + "-" + time.Now().Format("20060102150405")
-	res, err := r.client.Consume(&rabbitmq.ConsumeData{QueueName: queueName, Name:ConsumeName, OpCodes: opCodes, Limit: limit, AutoAck: autoAck, NoWait: noWait, Exclusive: exclusive})
+	res, err := r.client.Consume(&rabbitmq.ConsumeData{QueueName: queueName, Name: ConsumeName, OpCodes: opCodes, Limit: limit, AutoAck: autoAck, NoWait: noWait, Exclusive: exclusive})
 	panicErr(err)
 
 	return res
@@ -199,7 +201,7 @@ func (r *RabbitMq) ConsumeExchange(exchangeName, exchangeType, queueName string,
 	defer r.handlePanic()
 
 	ConsumeName := queueName + "-" + time.Now().Format("20060102150405")
-	res, err := r.client.Consume(&rabbitmq.ConsumeData{Name:ConsumeName, ExChange: &rabbitmq.ExchangeData{Name: exchangeName, Type: exchangeType, Durable:true},
+	res, err := r.client.Consume(&rabbitmq.ConsumeData{Name: ConsumeName, ExChange: &rabbitmq.ExchangeData{Name: exchangeName, Type: exchangeType, Durable: true},
 		QueueName: queueName, OpCodes: opCodes, Limit: limit, AutoAck: autoAck, NoWait: noWait, Exclusive: exclusive})
 	panicErr(err)
 

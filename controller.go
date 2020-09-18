@@ -11,8 +11,10 @@ import (
 )
 
 func init() {
-	container := App().Container()
-	App().Router().SetErrorController(container.Bind(&Controller{}))
+	Opt(AppInitOption(func(app *Application) {
+		container := app.Container()
+		app.Router().SetErrorController(container.Bind(&Controller{}))
+	}))
 }
 
 // Controller the base class of web and cmd controller
@@ -39,7 +41,7 @@ func (c *Controller) GetBindInfo(v interface{}) interface{} {
 
 		if len(name) > ActionLength && name[:ActionLength] == ActionPrefix {
 			actions[name[ActionLength:]] = i
-		}else{
+		} else {
 			//runeArr :=  []rune( name[0:1])
 			//if unicode.IsUpper(runeArr[0]) {
 			//	actions[name] = i

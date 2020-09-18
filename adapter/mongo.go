@@ -9,9 +9,12 @@ import (
 )
 
 var MongoClass string
+
 func init() {
-	container := pgo2.App().Container()
-	MongoClass = container.Bind(&Mongo{})
+	pgo2.Opt(pgo2.AppInitOption(func(app *pgo2.Application) {
+		container := app.Container()
+		MongoClass = container.Bind(&Mongo{})
+	}))
 }
 
 // NewMongo of Mongo Client, add context support.
