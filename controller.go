@@ -11,8 +11,10 @@ import (
 )
 
 func init() {
-	container := App().Container()
-	App().Router().SetErrorController(container.Bind(&Controller{}))
+	Opt(AppInitOption(func(app *Application) {
+		container := app.Container()
+		app.Router().SetErrorController(container.Bind(&Controller{}))
+	}))
 }
 
 // Controller the base class of web and cmd controller
@@ -39,7 +41,7 @@ func (c *Controller) GetBindInfo(v interface{}) interface{} {
 
 		if len(name) > ActionLength && name[:ActionLength] == ActionPrefix {
 			actions[name[ActionLength:]] = i
-		}else{
+		} else {
 			//runeArr :=  []rune( name[0:1])
 			//if unicode.IsUpper(runeArr[0]) {
 			//	actions[name] = i
@@ -64,7 +66,7 @@ func (c *Controller) HandlePanic(v interface{}, debug bool) {
 
 	switch e := v.(type) {
 	case *perror.Error:
-		status := e.Status()
+		status = e.Status()
 		defer func() {
 			if err := recover(); err != nil {
 				c.Json(EmptyObject, status, e.Message())
@@ -84,7 +86,9 @@ func (c *Controller) HandlePanic(v interface{}, debug bool) {
 		App().Router().ErrorController(c.Context(), status).(iface.IErrorController).Error(status, "")
 	}
 
-	c.Context().Error("%s, trace[%s]", util.ToString(v), util.PanicTrace(TraceMaxDepth, false, debug))
+	if status != http.StatusOK {
+		c.Context().Error("%s, trace[%s]", util.ToString(v), util.PanicTrace(TraceMaxDepth, false, debug))
+	}
 }
 
 // Redirect output redirect response

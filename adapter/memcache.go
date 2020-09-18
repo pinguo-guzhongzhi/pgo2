@@ -11,9 +11,12 @@ import (
 )
 
 var MemCacheClass string
+
 func init() {
-	container := pgo2.App().Container()
-	MemCacheClass = container.Bind(&MemCache{})
+	pgo2.Opt(pgo2.AppInitOption(func(app *pgo2.Application) {
+		container := app.Container()
+		MemCacheClass = container.Bind(&MemCache{})
+	}))
 }
 
 // NewMemCache of MemCache Client, add context support.

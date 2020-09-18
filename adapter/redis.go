@@ -11,9 +11,12 @@ import (
 )
 
 var RedisClass string
+
 func init() {
-	container := pgo2.App().Container()
-	RedisClass = container.Bind(&Redis{})
+	pgo2.Opt(pgo2.AppInitOption(func(app *pgo2.Application) {
+		container := app.Container()
+		RedisClass = container.Bind(&Redis{})
+	}))
 }
 
 // NewRedis of Redis Client, add context support.
@@ -25,7 +28,7 @@ func NewRedis(componentId ...string) *Redis {
 	}
 
 	c := &Redis{}
-	c.client = pgo2.App().Component(id, redis.New, map[string]interface{}{"logger":pgo2.GLogger()}).(*redis.Client)
+	c.client = pgo2.App().Component(id, redis.New, map[string]interface{}{"logger": pgo2.GLogger()}).(*redis.Client)
 	c.panicRecover = true
 
 	return c
@@ -41,7 +44,7 @@ func NewRedisPool(iObj iface.IObject, componentId ...interface{}) iface.IObject 
 
 	c := iObj.(*Redis)
 
-	c.client = pgo2.App().Component(id, redis.New, map[string]interface{}{"logger":pgo2.GLogger()}).(*redis.Client)
+	c.client = pgo2.App().Component(id, redis.New, map[string]interface{}{"logger": pgo2.GLogger()}).(*redis.Client)
 	c.panicRecover = true
 
 	return c

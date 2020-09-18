@@ -2,17 +2,17 @@ package pgo2
 
 import (
 	"github.com/pinguo/pgo2/config"
+	"log"
 	"os"
 )
 
 var defaultOpt *Options
 
-func init() {
-	defaultOpt = NewOpt()
-}
-
 //默认参数
 func Opt(opts ...Option) *Options {
+	if defaultOpt == nil {
+		defaultOpt = NewOpt()
+	}
 	for _, opt := range opts {
 		opt(defaultOpt)
 	}
@@ -21,16 +21,23 @@ func Opt(opts ...Option) *Options {
 
 //新建参数配置
 func NewOpt(opts ...Option) *Options {
-	if defaultOpt == nil {
-		defaultOpt = &Options{
-			Args:       os.Args,
-			ConfigData: make(map[string]interface{}),
+	Opt := &Options{
+		Args:           os.Args,
+		ConfigData:     make(map[string]interface{}),
+		PostConfigInit: make([]func(config config.IConfig), 0),
+		AppInit:        make([]func(app *Application), 0),
+	}
+	//复制默认参数上的回调函数到新配置上, 因为这些函数是在init中注册的
+	if defaultOpt != nil {
+		for _, f := range defaultOpt.AppInit {
+			Opt.AppInit = append(Opt.AppInit, f)
 		}
 	}
+
 	for _, opt := range opts {
-		opt(defaultOpt)
+		opt(Opt)
 	}
-	return defaultOpt
+	return Opt
 }
 
 type Option func(opts *Options)
@@ -45,6 +52,7 @@ type Options struct {
 
 func (s *Options) SetupConfig(cfg config.IConfig) error {
 	for k, v := range s.ConfigData {
+		log.Println(k, v)
 		cfg.Set(k, v)
 	}
 	return nil

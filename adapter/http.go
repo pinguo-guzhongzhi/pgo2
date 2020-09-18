@@ -14,8 +14,10 @@ import (
 var HttpClass string
 
 func init() {
-	container := pgo2.App().Container()
-	HttpClass = container.Bind(&Http{})
+	pgo2.Opt(pgo2.AppInitOption(func(app *pgo2.Application) {
+		container := app.Container()
+		HttpClass = container.Bind(&Http{})
+	}))
 }
 
 // Http of Http Client, add context support.

@@ -2,13 +2,12 @@ package pgo2
 
 import (
 	"fmt"
-	"github.com/pinguo/pgo2/options"
-	"regexp"
-	"strings"
-	"time"
-
 	"github.com/pinguo/pgo2/logs"
 	"github.com/pinguo/pgo2/util"
+	"regexp"
+	"strings"
+	"sync"
+	"time"
 )
 
 const (
@@ -44,12 +43,18 @@ var (
 	EmptyObject    struct{}
 	restFulActions = map[string]int{"GET": 1, "POST": 1, "PUT": 1, "DELETE": 1, "PATCH": 1, "OPTIONS": 1, "HEAD": 1}
 )
+var locker sync.Mutex
 
 func App(newApp ...bool) *Application {
 	if application != nil && newApp == nil {
 		return application
 	}
-	opts := options.Opt()
+	locker.Lock()
+	defer locker.Unlock()
+	if application != nil && newApp == nil {
+		return application
+	}
+	opts := Opt()
 	if len(newApp) > 0 {
 		opts.NewApp = newApp[0]
 	}
@@ -58,32 +63,31 @@ func App(newApp ...bool) *Application {
 	return application
 }
 
-func ArgsApp(opts ...options.Option) *Application {
-	opt := options.Opt()
-	for _, optValue := range opts {
-		optValue(opt)
-	}
-
+func ArgsApp(opts ...Option) *Application {
+	opt := NewOpt(opts...)
 	if application != nil && opt.NewApp == false {
+		application.option = NewOpt(opts...)
 		return application
 	}
-
 	application = NewApp(opt)
 
 	return application
 }
 
 // Run run app
-func Run(opts ...options.Option) {
+func Run(opts ...Option) {
+	app := ArgsApp(opts...)
+
 	// Initialization route
-	ArgsApp(opts...).Router().InitHandlers()
+	app.Router().InitHandlers()
+
 	// Check config path
-	if err := App().Config().CheckPath(); err != nil {
+	if err := app.Config().CheckPath(); err != nil {
 		cmdList()
 		panic(err)
 	}
 	// Listen for server or start CMD
-	ArgsApp(opts...).Server().Serve()
+	app.Server().Serve()
 }
 
 // GLogger get global logger

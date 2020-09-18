@@ -3,7 +3,6 @@ package pgo2
 import (
 	"flag"
 	"fmt"
-	"github.com/pinguo/pgo2/options"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -24,14 +23,16 @@ func validArgs(f *flag.FlagSet) {
 	_ = f.String("cmdList", "", "Displays a list of CMD controllers used (optional), eg. --cmdList")
 }
 
-func NewApp(option *options.Options) *Application {
+var appIndex = 0
+
+func NewApp(option *Options) *Application {
 	flagSet := flag.NewFlagSet("pgo2", flag.ExitOnError)
 	flagSet.Parse(option.Args)
 	validArgs(flagSet)
 	exeBase := filepath.Base(flagSet.Args()[0])
 	exeExt := filepath.Ext(flagSet.Args()[0])
 	exeDir := filepath.Dir(flagSet.Args()[0])
-
+	appIndex = appIndex + 1
 	app := &Application{
 		mode:       ModeWeb,
 		env:        "",
@@ -39,6 +40,7 @@ func NewApp(option *options.Options) *Application {
 		components: make(map[string]interface{}),
 		objects:    make(map[string]iface.IObject),
 		option:     option,
+		index:      appIndex,
 	}
 
 	app.basePath = app.genBasePath(exeDir)
@@ -49,6 +51,7 @@ func NewApp(option *options.Options) *Application {
 }
 
 type Application struct {
+	index       int
 	mode        string // running mode, WEB or CMD
 	env         string // running env, eg. develop/online/testing-dev/testing-qa
 	name        string // App name
@@ -73,7 +76,7 @@ type Application struct {
 
 	args map[string]string
 
-	option *options.Options
+	option *Options
 }
 
 func (app *Application) initArgs(osArgs []string) map[string]string {
@@ -127,6 +130,9 @@ func (app *Application) cmdList() bool {
 }
 
 func (app *Application) Init(osArgs []string) {
+	if len(osArgs) == 0 {
+		osArgs = app.option.Args
+	}
 	args := app.initArgs(osArgs)
 
 	// overwrite running env
@@ -152,9 +158,14 @@ func (app *Application) Init(osArgs []string) {
 
 	// initialize config object
 	app.config = config.New(app.basePath, app.env)
-	if app.option.AfterConfigInit != nil {
-		app.option.AfterConfigInit(app.config)
+	//调用配置完成后参数回调
+	if app.option.PostConfigInit != nil {
+		for _, callback := range app.option.PostConfigInit {
+			callback(app.config)
+		}
 	}
+	//设置运行时自定义参数
+	app.option.SetupConfig(app.config)
 
 	// initialize container object
 	enablePool, _ := app.config.Get("app.container.enablePool").(string)
@@ -194,6 +205,10 @@ func (app *Application) Init(osArgs []string) {
 		if e := os.MkdirAll(app.runtimePath, 0755); e != nil {
 			panic(fmt.Sprintf("failed to create %s, %s", app.runtimePath, e))
 		}
+	}
+
+	for _, k := range app.option.AppInit {
+		k(app)
 	}
 }
 
@@ -375,9 +390,9 @@ func (app *Application) Component(id string, funcName iface.IComponentFunc, para
 }
 
 // Get get pool class object. name is class name, ctx is context,
-func (app *Application) GetObjPool(name string, ctx iface.IContext) iface.IObject {
+func (app *Application) GetObjPool(name string, ctx iface.IContext, params ...interface{}) iface.IObject {
 	if name := GetAlias(name); len(name) > 0 {
-		return app.container.Get(name, ctx).Interface().(iface.IObject)
+		return app.container.Get(name, ctx, params...).Interface().(iface.IObject)
 	}
 
 	panic("unknown class: " + name)

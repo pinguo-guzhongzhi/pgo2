@@ -11,9 +11,12 @@ import (
 )
 
 var MemoryClass string
+
 func init() {
-	container := pgo2.App().Container()
-	MemoryClass = container.Bind(&Memory{})
+	pgo2.Opt(pgo2.AppInitOption(func(app *pgo2.Application) {
+		container := app.Container()
+		MemoryClass = container.Bind(&Memory{})
+	}))
 }
 
 // NewMemory of Memory Client, add context support.
@@ -27,7 +30,7 @@ func NewMemory(componentId ...string) *Memory {
 
 	m := &Memory{}
 
-	m.client = pgo2.App().Component(id, memory.New, map[string]interface{}{"logger":pgo2.GLogger()}).(*memory.Client)
+	m.client = pgo2.App().Component(id, memory.New, map[string]interface{}{"logger": pgo2.GLogger()}).(*memory.Client)
 	m.panicRecover = true
 
 	return m
@@ -43,7 +46,7 @@ func NewMemoryPool(iObj iface.IObject, componentId ...interface{}) iface.IObject
 
 	m := iObj.(*Memory)
 
-	m.client = pgo2.App().Component(id, memory.New, map[string]interface{}{"logger":pgo2.GLogger()}).(*memory.Client)
+	m.client = pgo2.App().Component(id, memory.New, map[string]interface{}{"logger": pgo2.GLogger()}).(*memory.Client)
 	m.panicRecover = true
 
 	return m
